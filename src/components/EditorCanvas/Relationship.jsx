@@ -1,23 +1,14 @@
 import { useMemo, useRef } from "react";
-import {
-  Cardinality,
-  darkBgTheme,
-  ObjectType,
-  Tab,
-} from "../../data/constants";
+import { Cardinality, darkBgTheme } from "../../data/constants";
 import { calcPath } from "../../utils/calcPath";
-import { useDiagram, useSettings, useLayout, useSelect } from "../../hooks";
+import { useDiagram, useSettings } from "../../hooks";
 import { useTranslation } from "react-i18next";
-import { SideSheet } from "@douyinfe/semi-ui";
-import RelationshipInfo from "../EditorSidePanel/RelationshipsTab/RelationshipInfo";
 
 const labelFontSize = 16;
 
 export default function Relationship({ data }) {
   const { settings } = useSettings();
   const { tables } = useDiagram();
-  const { layout } = useLayout();
-  const { selectedElement, setSelectedElement } = useSelect();
   const { t } = useTranslation();
 
   const pathValues = useMemo(() => {
@@ -92,32 +83,9 @@ export default function Relationship({ data }) {
     cardinalityEndY = point2.y;
   }
 
-  const edit = () => {
-    if (!layout.sidebar) {
-      setSelectedElement((prev) => ({
-        ...prev,
-        element: ObjectType.RELATIONSHIP,
-        id: data.id,
-        open: true,
-      }));
-    } else {
-      setSelectedElement((prev) => ({
-        ...prev,
-        currentTab: Tab.RELATIONSHIPS,
-        element: ObjectType.RELATIONSHIP,
-        id: data.id,
-        open: true,
-      }));
-      if (selectedElement.currentTab !== Tab.RELATIONSHIPS) return;
-      document
-        .getElementById(`scroll_ref_${data.id}`)
-        .scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
   return (
     <>
-      <g className="select-none group" onDoubleClick={edit}>
+      <g className="select-none group">
         <path
           ref={pathRef}
           d={calcPath(pathValues, settings.tableWidth)}
@@ -188,27 +156,6 @@ export default function Relationship({ data }) {
           </>
         )}
       </g>
-      <SideSheet
-        title={t("edit")}
-        size="small"
-        visible={
-          selectedElement.element === ObjectType.RELATIONSHIP &&
-          selectedElement.id === data.id &&
-          selectedElement.open &&
-          !layout.sidebar
-        }
-        onCancel={() => {
-          setSelectedElement((prev) => ({
-            ...prev,
-            open: false,
-          }));
-        }}
-        style={{ paddingBottom: "16px" }}
-      >
-        <div className="sidesheet-theme">
-          <RelationshipInfo data={data} />
-        </div>
-      </SideSheet>
     </>
   );
 }

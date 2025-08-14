@@ -10,26 +10,22 @@ import {
 } from "../../data/constants";
 import { Toast } from "@douyinfe/semi-ui";
 import Table from "./Table";
-import Area from "./Area";
 import Relationship from "./Relationship";
-import Note from "./Note";
 import {
+  useLayout,
   useCanvas,
   useSettings,
   useTransform,
   useDiagram,
   useUndoRedo,
   useSelect,
-  useAreas,
-  useNotes,
-  useLayout,
   useSaveState,
 } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { useEventListener } from "usehooks-ts";
 import { areFieldsCompatible, getTableHeight } from "../../utils/utils";
 import { getRectFromEndpoints, isInsideRect } from "../../utils/rect";
-import { State, noteWidth } from "../../data/constants";
+import { State } from "../../data/constants";
 
 export default function Canvas() {
   const { t } = useTranslation();
@@ -44,8 +40,6 @@ export default function Canvas() {
   const { tables, updateTable, relationships, addRelationship, database } =
     useDiagram();
   const { setSaveState } = useSaveState();
-  const { areas, updateArea } = useAreas();
-  const { notes, updateNote } = useNotes();
   const { layout } = useLayout();
   const { settings } = useSettings();
   const { setUndoStack, setRedoStack } = useUndoRedo();
@@ -136,46 +130,6 @@ export default function Canvas() {
         height: getTableHeight(table),
       };
       if (shouldAddElement(tableRect, element)) {
-        elements.push(element);
-      }
-    });
-
-    areas.forEach((area) => {
-      if (area.locked) return;
-
-      const element = {
-        id: area.id,
-        type: ObjectType.AREA,
-        currentCoords: { x: area.x, y: area.y },
-        initialCoords: { x: area.x, y: area.y },
-      };
-      const areaRect = {
-        x: area.x,
-        y: area.y,
-        width: area.width,
-        height: area.height,
-      };
-      if (shouldAddElement(areaRect, element)) {
-        elements.push(element);
-      }
-    });
-
-    notes.forEach((note) => {
-      if (note.locked) return;
-
-      const element = {
-        id: note.id,
-        type: ObjectType.NOTE,
-        currentCoords: { x: note.x, y: note.y },
-        initialCoords: { x: note.x, y: note.y },
-      };
-      const noteRect = {
-        x: note.x,
-        y: note.y,
-        width: noteWidth,
-        height: note.height,
-      };
-      if (shouldAddElement(noteRect, element)) {
         elements.push(element);
       }
     });
@@ -326,12 +280,7 @@ export default function Canvas() {
         if (el.type === ObjectType.TABLE) {
           updateTable(el.id, { ...elementFinalCoords });
         }
-        if (el.type === ObjectType.AREA) {
-          updateArea(el.id, { ...elementFinalCoords });
-        }
-        if (el.type === ObjectType.NOTE) {
-          updateNote(el.id, { ...elementFinalCoords });
-        }
+
         newBulkSelectedElements.push({
           ...el,
           currentCoords: elementFinalCoords,
@@ -373,7 +322,6 @@ export default function Canvas() {
           break;
       }
 
-      updateArea(areaResize.id, { ...newDims });
       return;
     }
 
@@ -442,15 +390,6 @@ export default function Canvas() {
     );
   };
 
-  const didResize = (id) => {
-    return !(
-      areas[id].x === areaInitDimensions.x &&
-      areas[id].y === areaInitDimensions.y &&
-      areas[id].width === areaInitDimensions.width &&
-      areas[id].height === areaInitDimensions.height
-    );
-  };
-
   const didPan = () =>
     !(
       transform.pan.x === panning.panStart.x &&
@@ -511,7 +450,7 @@ export default function Canvas() {
     if (linking) handleLinking();
     setLinking(false);
 
-    if (areaResize.id !== -1 && didResize(areaResize.id)) {
+    if (areaResize.id !== -1) {
       setUndoStack((prev) => [
         ...prev,
         {
@@ -519,15 +458,12 @@ export default function Canvas() {
           element: ObjectType.AREA,
           aid: areaResize.id,
           undo: {
-            ...areas[areaResize.id],
             x: areaInitDimensions.x,
             y: areaInitDimensions.y,
             width: areaInitDimensions.width,
             height: areaInitDimensions.height,
           },
-          redo: areas[areaResize.id],
           message: t("edit_area", {
-            areaName: areas[areaResize.id].name,
             extra: "[resize]",
           }),
         },
@@ -687,20 +623,7 @@ export default function Canvas() {
               />
             </>
           )}
-          {areas.map((a) => (
-            <Area
-              key={a.id}
-              data={a}
-              setResize={setAreaResize}
-              setInitDimensions={setAreaInitDimensions}
-              onPointerDown={() => {
-                elementPointerDown = {
-                  element: a,
-                  type: ObjectType.AREA,
-                };
-              }}
-            />
-          ))}
+
           {relationships.map((e, i) => (
             <Relationship key={i} data={e} />
           ))}
@@ -727,18 +650,7 @@ export default function Canvas() {
               className="pointer-events-none touch-none"
             />
           )}
-          {notes.map((n) => (
-            <Note
-              key={n.id}
-              data={n}
-              onPointerDown={() => {
-                elementPointerDown = {
-                  element: n,
-                  type: ObjectType.NOTE,
-                };
-              }}
-            />
-          ))}
+
           {bulkSelectRect.show && (
             <rect
               {...getRectFromEndpoints(bulkSelectRect)}

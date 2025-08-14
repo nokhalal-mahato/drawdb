@@ -9,9 +9,7 @@ import { DB, MODAL, STATUS } from "../../../data/constants";
 import { useState } from "react";
 import { db } from "../../../data/db";
 import {
-  useAreas,
   useEnums,
-  useNotes,
   useDiagram,
   useTransform,
   useTypes,
@@ -26,14 +24,8 @@ import {
   getModalWidth,
   getOkText,
 } from "../../../utils/modalData";
-import Rename from "./Rename";
-import Open from "./Open";
-import New from "./New";
 import ImportDiagram from "./ImportDiagram";
 import ImportSource from "./ImportSource";
-import SetTableWidth from "./SetTableWidth";
-import Language from "./Language";
-import Share from "./Share";
 import CodeEditor from "../../CodeEditor";
 import { useTranslation } from "react-i18next";
 import { importSQL } from "../../../utils/importSQL";
@@ -60,8 +52,7 @@ export default function Modal({
 }) {
   const { t, i18n } = useTranslation();
   const { setTables, setRelationships, database, setDatabase } = useDiagram();
-  const { setNotes } = useNotes();
-  const { setAreas } = useAreas();
+
   const { setTypes } = useTypes();
   const { setEnums } = useEnums();
   const { setTasks } = useTasks();
@@ -84,8 +75,6 @@ export default function Modal({
   const overwriteDiagram = () => {
     setTables(importData.tables);
     setRelationships(importData.relationships);
-    setAreas(importData.subjectAreas ?? []);
-    setNotes(importData.notes ?? []);
     if (importData.title) {
       setTitle(importData.title);
     }
@@ -111,8 +100,6 @@ export default function Modal({
           setTitle(diagram.name);
           setTables(diagram.tables);
           setRelationships(diagram.references);
-          setAreas(diagram.areas);
-          setNotes(diagram.notes);
           setTasks(diagram.todos ?? []);
           setTransform({
             pan: diagram.pan,
@@ -176,8 +163,6 @@ export default function Modal({
         if (databases[database].hasTypes) setTypes(diagramData.types ?? []);
         if (databases[database].hasEnums) setEnums(diagramData.enums ?? []);
         setTransform((prev) => ({ ...prev, pan: { x: 0, y: 0 } }));
-        setNotes([]);
-        setAreas([]);
       } else {
         setTables((prev) => [...prev, ...diagramData.tables]);
         setRelationships((prev) =>
@@ -280,32 +265,7 @@ export default function Modal({
             setError={setError}
           />
         );
-      case MODAL.NEW:
-        return (
-          <New
-            selectedTemplateId={selectedTemplateId}
-            setSelectedTemplateId={setSelectedTemplateId}
-          />
-        );
-      case MODAL.RENAME:
-        return (
-          <Rename key={title} title={title} setTitle={setUncontrolledTitle} />
-        );
-      case MODAL.OPEN:
-        return (
-          <Open
-            selectedDiagramId={selectedDiagramId}
-            setSelectedDiagramId={setSelectedDiagramId}
-          />
-        );
-      case MODAL.SAVEAS:
-        return (
-          <Input
-            placeholder={t("name")}
-            value={saveAsTitle}
-            onChange={(v) => setSaveAsTitle(v)}
-          />
-        );
+
       case MODAL.CODE:
       case MODAL.IMG:
         if (exportData.data !== "" || exportData.data) {
@@ -341,12 +301,6 @@ export default function Modal({
             </div>
           );
         }
-      case MODAL.TABLE_WIDTH:
-        return <SetTableWidth />;
-      case MODAL.LANGUAGE:
-        return <Language />;
-      case MODAL.SHARE:
-        return <Share title={title} setModal={setModal} />;
       default:
         return <></>;
     }

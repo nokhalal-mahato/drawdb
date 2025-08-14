@@ -4,13 +4,7 @@ import {
 } from "../../../utils/validateSchema";
 import { Upload, Banner } from "@douyinfe/semi-ui";
 import { DB, IMPORT_FROM, STATUS } from "../../../data/constants";
-import {
-  useAreas,
-  useEnums,
-  useNotes,
-  useDiagram,
-  useTypes,
-} from "../../../hooks";
+import { useEnums, useDiagram, useTypes } from "../../../hooks";
 import { useTranslation } from "react-i18next";
 import { fromDBML } from "../../../utils/importFrom/dbml";
 
@@ -20,8 +14,6 @@ export default function ImportDiagram({
   setError,
   importFrom,
 }) {
-  const { areas } = useAreas();
-  const { notes } = useNotes();
   const { tables, relationships, database } = useDiagram();
   const { types } = useTypes();
   const { enums } = useEnums();
@@ -31,8 +23,6 @@ export default function ImportDiagram({
     return (
       tables.length === 0 &&
       relationships.length === 0 &&
-      notes.length === 0 &&
-      areas.length === 0 &&
       types.length === 0 &&
       enums.length === 0
     );

@@ -44,6 +44,7 @@ export const Tab = {
   NOTES: "4",
   TYPES: "5",
   ENUMS: "6",
+  DBML: "7",
 };
 
 export const ObjectType = {

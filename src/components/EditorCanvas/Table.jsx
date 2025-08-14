@@ -15,9 +15,8 @@ import {
   IconLock,
   IconUnlock,
 } from "@douyinfe/semi-icons";
-import { Popover, Tag, Button, SideSheet } from "@douyinfe/semi-ui";
-import { useLayout, useSettings, useDiagram, useSelect } from "../../hooks";
-import TableInfo from "../EditorSidePanel/TablesTab/TableInfo";
+import { Popover, Tag, Button } from "@douyinfe/semi-ui";
+import { useSettings, useDiagram, useSelect } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { dbToTypes } from "../../data/datatypes";
 import { isRtl } from "../../i18n/utils/rtl";
@@ -33,7 +32,6 @@ export default function Table({
 }) {
   const [hoveredField, setHoveredField] = useState(null);
   const { database } = useDiagram();
-  const { layout } = useLayout();
   const { deleteTable, deleteField, updateTable } = useDiagram();
   const { settings } = useSettings();
   const { t } = useTranslation();
@@ -107,26 +105,17 @@ export default function Table({
   };
 
   const openEditor = () => {
-    if (!layout.sidebar) {
-      setSelectedElement((prev) => ({
-        ...prev,
-        element: ObjectType.TABLE,
-        id: tableData.id,
-        open: true,
-      }));
-    } else {
-      setSelectedElement((prev) => ({
-        ...prev,
-        currentTab: Tab.TABLES,
-        element: ObjectType.TABLE,
-        id: tableData.id,
-        open: true,
-      }));
-      if (selectedElement.currentTab !== Tab.TABLES) return;
-      document
-        .getElementById(`scroll_table_${tableData.id}`)
-        .scrollIntoView({ behavior: "smooth" });
-    }
+    setSelectedElement((prev) => ({
+      ...prev,
+      currentTab: Tab.TABLES,
+      element: ObjectType.TABLE,
+      id: tableData.id,
+      open: true,
+    }));
+    if (selectedElement.currentTab !== Tab.TABLES) return;
+    document
+      .getElementById(`scroll_table_${tableData.id}`)
+      .scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -329,27 +318,6 @@ export default function Table({
           })}
         </div>
       </foreignObject>
-      <SideSheet
-        title={t("edit")}
-        size="small"
-        visible={
-          selectedElement.element === ObjectType.TABLE &&
-          selectedElement.id === tableData.id &&
-          selectedElement.open &&
-          !layout.sidebar
-        }
-        onCancel={() =>
-          setSelectedElement((prev) => ({
-            ...prev,
-            open: !prev.open,
-          }))
-        }
-        style={{ paddingBottom: "16px" }}
-      >
-        <div className="sidesheet-theme">
-          <TableInfo data={tableData} />
-        </div>
-      </SideSheet>
     </>
   );
 

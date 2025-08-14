@@ -11,20 +11,15 @@ import {
   useTransform,
   useDiagram,
   useUndoRedo,
-  useAreas,
-  useNotes,
   useTypes,
   useTasks,
   useSaveState,
   useEnums,
 } from "../hooks";
-import FloatingControls from "./FloatingControls";
 import { Modal, Tag } from "@douyinfe/semi-ui";
 import { useTranslation } from "react-i18next";
 import { databases } from "../data/databases";
 import { isRtl } from "../i18n/utils/rtl";
-import { useSearchParams } from "react-router-dom";
-import { get } from "../api/gists";
 
 export const IdContext = createContext({ gistId: "", setGistId: () => {} });
 
@@ -43,9 +38,7 @@ export default function WorkSpace() {
   const { layout } = useLayout();
   const { settings } = useSettings();
   const { types, setTypes } = useTypes();
-  const { areas, setAreas } = useAreas();
   const { tasks, setTasks } = useTasks();
-  const { notes, setNotes } = useNotes();
   const { saveState, setSaveState } = useSaveState();
   const { transform, setTransform } = useTransform();
   const { enums, setEnums } = useEnums();
@@ -59,7 +52,6 @@ export default function WorkSpace() {
   } = useDiagram();
   const { undoStack, redoStack, setUndoStack, setRedoStack } = useUndoRedo();
   const { t, i18n } = useTranslation();
-  let [searchParams, setSearchParams] = useSearchParams();
   const handleResize = (e) => {
     if (!resize) return;
     const w = isRtl(i18n.language) ? window.innerWidth - e.clientX : e.clientX;
@@ -74,8 +66,6 @@ export default function WorkSpace() {
     const saveAsDiagram = window.name === "" || op === "d" || op === "lt";
 
     if (saveAsDiagram) {
-      searchParams.delete("shareId");
-      setSearchParams(searchParams);
       if ((id === 0 && window.name === "") || op === "lt") {
         await db.diagrams
           .add({
@@ -85,8 +75,6 @@ export default function WorkSpace() {
             lastModified: new Date(),
             tables: tables,
             references: relationships,
-            notes: notes,
-            areas: areas,
             todos: tasks,
             pan: transform.pan,
             zoom: transform.zoom,
@@ -108,8 +96,6 @@ export default function WorkSpace() {
             lastModified: new Date(),
             tables: tables,
             references: relationships,
-            notes: notes,
-            areas: areas,
             todos: tasks,
             gistId: gistId ?? "",
             pan: transform.pan,
@@ -130,8 +116,6 @@ export default function WorkSpace() {
           title: title,
           tables: tables,
           relationships: relationships,
-          notes: notes,
-          subjectAreas: areas,
           todos: tasks,
           pan: transform.pan,
           zoom: transform.zoom,
@@ -147,12 +131,8 @@ export default function WorkSpace() {
         });
     }
   }, [
-    searchParams,
-    setSearchParams,
     tables,
     relationships,
-    notes,
-    areas,
     types,
     title,
     id,
@@ -184,8 +164,6 @@ export default function WorkSpace() {
             setTitle(d.name);
             setTables(d.tables);
             setRelationships(d.references);
-            setNotes(d.notes);
-            setAreas(d.areas);
             setTasks(d.todos ?? []);
             setTransform({ pan: d.pan, zoom: d.zoom });
             if (databases[database].hasTypes) {
@@ -221,8 +199,6 @@ export default function WorkSpace() {
             setTitle(diagram.name);
             setTables(diagram.tables);
             setRelationships(diagram.references);
-            setAreas(diagram.areas);
-            setNotes(diagram.notes);
             setTasks(diagram.todos ?? []);
             setTransform({
               pan: diagram.pan,
@@ -260,9 +236,7 @@ export default function WorkSpace() {
             setTitle(diagram.title);
             setTables(diagram.tables);
             setRelationships(diagram.relationships);
-            setAreas(diagram.subjectAreas);
             setTasks(diagram.todos ?? []);
-            setNotes(diagram.notes);
             setTransform({
               zoom: 1,
               pan: { x: 0, y: 0 },
@@ -284,51 +258,6 @@ export default function WorkSpace() {
           if (selectedDb === "") setShowSelectDbModal(true);
         });
     };
-
-    const loadFromGist = async (shareId) => {
-      try {
-        const res = await get(shareId);
-        const diagramSrc = res.data.files["share.json"].content;
-        const d = JSON.parse(diagramSrc);
-        setGistId(shareId);
-        setUndoStack([]);
-        setRedoStack([]);
-        setLoadedFromGistId(shareId);
-        setDatabase(d.database);
-        setTitle(d.title);
-        setTables(d.tables);
-        setRelationships(d.relationships);
-        setNotes(d.notes);
-        setAreas(d.subjectAreas);
-        setTransform(d.transform);
-        if (databases[d.database].hasTypes) {
-          setTypes(d.types ?? []);
-        }
-        if (databases[d.database].hasEnums) {
-          setEnums(d.enums ?? []);
-        }
-      } catch (e) {
-        console.log(e);
-        setSaveState(State.FAILED_TO_LOAD);
-      }
-    };
-
-    const shareId = searchParams.get("shareId");
-    if (shareId) {
-      const existingDiagram = await db.diagrams.get({
-        loadedFromGistId: shareId,
-      });
-
-      if (existingDiagram) {
-        window.name = "d " + existingDiagram.id;
-        setId(existingDiagram.id);
-      } else {
-        window.name = "";
-        setId(0);
-      }
-      await loadFromGist(shareId);
-      return;
-    }
 
     if (window.name === "") {
       await loadLatestDiagram();
@@ -356,8 +285,6 @@ export default function WorkSpace() {
     setUndoStack,
     setRelationships,
     setTables,
-    setAreas,
-    setNotes,
     setTypes,
     setTasks,
     setDatabase,
@@ -365,17 +292,10 @@ export default function WorkSpace() {
     setEnums,
     selectedDb,
     setSaveState,
-    searchParams,
   ]);
 
   useEffect(() => {
-    if (
-      tables?.length === 0 &&
-      areas?.length === 0 &&
-      notes?.length === 0 &&
-      types?.length === 0 &&
-      tasks?.length === 0
-    )
+    if (tables?.length === 0 && types?.length === 0 && tasks?.length === 0)
       return;
 
     if (settings.autosave) {
@@ -386,8 +306,6 @@ export default function WorkSpace() {
     redoStack,
     settings.autosave,
     tables?.length,
-    areas?.length,
-    notes?.length,
     types?.length,
     relationships?.length,
     tasks?.length,
@@ -438,11 +356,6 @@ export default function WorkSpace() {
           <CanvasContextProvider className="h-full w-full">
             <Canvas saveState={saveState} setSaveState={setSaveState} />
           </CanvasContextProvider>
-          {!(layout.sidebar || layout.toolbar || layout.header) && (
-            <div className="fixed right-5 bottom-4">
-              <FloatingControls />
-            </div>
-          )}
         </div>
       </div>
       <Modal

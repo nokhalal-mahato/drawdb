@@ -3,8 +3,6 @@ import TransformContextProvider from "../context/TransformContext";
 import TablesContextProvider from "../context/DiagramContext";
 import UndoRedoContextProvider from "../context/UndoRedoContext";
 import SelectContextProvider from "../context/SelectContext";
-import AreasContextProvider from "../context/AreasContext";
-import NotesContextProvider from "../context/NotesContext";
 import TypesContextProvider from "../context/TypesContext";
 import TasksContextProvider from "../context/TasksContext";
 import SaveStateContextProvider from "../context/SaveStateContext";
@@ -21,19 +19,15 @@ export default function Editor() {
         <UndoRedoContextProvider>
           <SelectContextProvider>
             <TasksContextProvider>
-              <AreasContextProvider>
-                <NotesContextProvider>
-                  <TypesContextProvider>
-                    <EnumsContextProvider>
-                      <TablesContextProvider>
-                        <SaveStateContextProvider>
-                          <WorkSpace />
-                        </SaveStateContextProvider>
-                      </TablesContextProvider>
-                    </EnumsContextProvider>
-                  </TypesContextProvider>
-                </NotesContextProvider>
-              </AreasContextProvider>
+              <TypesContextProvider>
+                <EnumsContextProvider>
+                  <TablesContextProvider>
+                    <SaveStateContextProvider>
+                      <WorkSpace />
+                    </SaveStateContextProvider>
+                  </TablesContextProvider>
+                </EnumsContextProvider>
+              </TypesContextProvider>
             </TasksContextProvider>
           </SelectContextProvider>
         </UndoRedoContextProvider>

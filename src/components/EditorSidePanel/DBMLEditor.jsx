@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDiagram, useEnums, useLayout } from "../../hooks";
+import { useDiagram, useEnums } from "../../hooks";
 import { toDBML } from "../../utils/exportAs/dbml";
 import { Button, Tooltip } from "@douyinfe/semi-ui";
 import { IconTemplate } from "@douyinfe/semi-icons";
@@ -11,12 +11,7 @@ export default function DBMLEditor() {
   const diagram = useDiagram();
   const { enums } = useEnums();
   const [value, setValue] = useState(() => toDBML({ ...diagram, enums }));
-  const { setLayout } = useLayout();
   const { t } = useTranslation();
-
-  const toggleDBMLEditor = () => {
-    setLayout((prev) => ({ ...prev, dbmlEditor: !prev.dbmlEditor }));
-  };
 
   useEffect(() => {
     setValue(toDBML({ tables: currentTables, enums, relationships }));
@@ -35,7 +30,7 @@ export default function DBMLEditor() {
       }}
       extraControls={
         <Tooltip content={t("tab_view")}>
-          <Button icon={<IconTemplate />} onClick={toggleDBMLEditor} />
+          <Button icon={<IconTemplate />} />
         </Tooltip>
       }
     />

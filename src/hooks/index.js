@@ -1,8 +1,5 @@
-export { default as useAreas } from "./useAreas";
 export { default as useCanvas } from "./useCanvas";
-export { default as useFullscreen } from "./useFullscreen";
 export { default as useLayout } from "./useLayout";
-export { default as useNotes } from "./useNotes";
 export { default as useSaveState } from "./useSaveState";
 export { default as useSelect } from "./useSelect";
 export { default as useSettings } from "./useSettings";
