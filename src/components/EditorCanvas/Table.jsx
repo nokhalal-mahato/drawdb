@@ -1,27 +1,29 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Tab,
   ObjectType,
-  tableFieldHeight,
+  tableWidth,
   tableHeaderHeight,
-  tableColorStripHeight,
+  tableFieldCenterOffset,
+  tableFieldHeight,
+  tableDotRadius,
+  tableDotOffset,
 } from "../../data/constants";
-import {
-  IconEdit,
-  IconMore,
-  IconMinus,
-  IconDeleteStroked,
-  IconKeyStroked,
-  IconLock,
-  IconUnlock,
-} from "@douyinfe/semi-icons";
-import { Popover, Tag, Button } from "@douyinfe/semi-ui";
-import { useSettings, useDiagram, useSelect } from "../../hooks";
+
+import { SideSheet } from "@douyinfe/semi-ui";
+import { useDiagram, useSelect } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { dbToTypes } from "../../data/datatypes";
-import { isRtl } from "../../i18n/utils/rtl";
-import i18n from "../../i18n/i18n";
 import { getTableHeight } from "../../utils/utils";
+import SidePanel from "../EditorSidePanel/SidePanel";
+import {
+  DataBaseIcon,
+  DeleteIcon,
+  DetailsIcon,
+  EditIcon,
+  KeyIcon,
+} from "../../icons";
+import CommonButton from "../CommonButton";
 
 export default function Table({
   tableData,
@@ -29,23 +31,13 @@ export default function Table({
   setHoveredTable,
   handleGripField,
   setLinkingLine,
+  readOnly = false,
 }) {
-  const [hoveredField, setHoveredField] = useState(null);
   const { database } = useDiagram();
-  const { deleteTable, deleteField, updateTable } = useDiagram();
-  const { settings } = useSettings();
+  const { deleteTable } = useDiagram();
   const { t } = useTranslation();
-  const {
-    selectedElement,
-    setSelectedElement,
-    bulkSelectedElements,
-    setBulkSelectedElements,
-  } = useSelect();
-
-  const borderColor = useMemo(
-    () => (settings.mode === "light" ? "border-zinc-300" : "border-zinc-600"),
-    [settings.mode],
-  );
+  const { selectedElement, setSelectedElement, bulkSelectedElements } =
+    useSelect();
 
   const height = getTableHeight(tableData);
 
@@ -59,51 +51,6 @@ export default function Table({
     );
   }, [selectedElement, tableData, bulkSelectedElements]);
 
-  const lockUnlockTable = (e) => {
-    const locking = !tableData.locked;
-    updateTable(tableData.id, { locked: locking });
-
-    const lockTable = () => {
-      setSelectedElement({
-        ...selectedElement,
-        element: ObjectType.NONE,
-        id: -1,
-        open: false,
-      });
-      setBulkSelectedElements((prev) =>
-        prev.filter(
-          (el) => el.id !== tableData.id || el.type !== ObjectType.TABLE,
-        ),
-      );
-    };
-
-    const unlockTable = () => {
-      const elementInBulk = {
-        id: tableData.id,
-        type: ObjectType.TABLE,
-        initialCoords: { x: tableData.x, y: tableData.y },
-        currentCoords: { x: tableData.x, y: tableData.y },
-      };
-      if (e.ctrlKey || e.metaKey) {
-        setBulkSelectedElements((prev) => [...prev, elementInBulk]);
-      } else {
-        setBulkSelectedElements([elementInBulk]);
-      }
-      setSelectedElement((prev) => ({
-        ...prev,
-        element: ObjectType.TABLE,
-        id: tableData.id,
-        open: false,
-      }));
-    };
-
-    if (locking) {
-      lockTable();
-    } else {
-      unlockTable();
-    }
-  };
-
   const openEditor = () => {
     setSelectedElement((prev) => ({
       ...prev,
@@ -112,11 +59,66 @@ export default function Table({
       id: tableData.id,
       open: true,
     }));
-    if (selectedElement.currentTab !== Tab.TABLES) return;
-    document
-      .getElementById(`scroll_table_${tableData.id}`)
-      .scrollIntoView({ behavior: "smooth" });
   };
+
+  const getFieldCenterY = (fieldIndex) =>
+    tableData.y +
+    fieldIndex * tableFieldHeight +
+    tableHeaderHeight +
+    tableFieldCenterOffset;
+
+  const handleConnectionDotPointerDown = (
+    e,
+    fieldData,
+    index,
+    isRightSide = false,
+  ) => {
+    if (!e.isPrimary) return;
+
+    handleGripField();
+
+    const fieldCenterY = getFieldCenterY(index);
+    const connectionX = isRightSide
+      ? tableData.x + tableWidth + tableDotOffset
+      : tableData.x - tableDotOffset;
+
+    setLinkingLine((prev) => ({
+      ...prev,
+      startFieldId: fieldData.id,
+      startTableId: tableData.id,
+      startX: connectionX,
+      startY: fieldCenterY,
+      endX: connectionX,
+      endY: fieldCenterY,
+    }));
+  };
+
+  const renderConnectionDot = (fieldData, index, isRightSide = false) => {
+    const fieldCenterY = getFieldCenterY(index);
+    const cx = isRightSide ? tableData.x + tableWidth : tableData.x;
+
+    return (
+      <circle
+        cx={cx}
+        cy={fieldCenterY}
+        r={tableDotRadius}
+        fill="#FFFFFF"
+        stroke="#2563EB"
+        strokeWidth="3"
+        className="cursor-pointer hover:stroke-blue-700"
+        onPointerDown={(e) =>
+          handleConnectionDotPointerDown(e, fieldData, index, isRightSide)
+        }
+      />
+    );
+  };
+
+  const renderConnectionDots = (fieldData, index) => (
+    <g key={`connection-dots-${fieldData.id}`}>
+      {renderConnectionDot(fieldData, index, false)}
+      {renderConnectionDot(fieldData, index, true)}
+    </g>
+  );
 
   return (
     <>
@@ -124,200 +126,73 @@ export default function Table({
         key={tableData.id}
         x={tableData.x}
         y={tableData.y}
-        width={settings.tableWidth}
+        width={tableWidth}
         height={height}
         className="group drop-shadow-lg rounded-md cursor-move"
         onPointerDown={onPointerDown}
       >
         <div
-          onDoubleClick={openEditor}
-          className={`border-2 hover:border-dashed hover:border-blue-500
-               select-none rounded-lg w-full ${
-                 settings.mode === "light"
-                   ? "bg-zinc-100 text-zinc-800"
-                   : "bg-zinc-800 text-zinc-200"
-               } ${isSelected ? "border-solid border-blue-500" : borderColor}`}
-          style={{ direction: "ltr" }}
+          className={`border select-none rounded-lg w-full overflow-hidden bg-white text-slate-800
+              ${isSelected ? "border-blue-500 border-2 rounded-xl" : "border-slate-300"}`}
         >
-          <div
-            className="h-[10px] w-full rounded-t-md"
-            style={{ backgroundColor: tableData.color }}
-          />
-          <div
-            className={`overflow-hidden font-bold h-[40px] flex justify-between items-center border-b border-gray-400 ${
-              settings.mode === "light" ? "bg-zinc-200" : "bg-zinc-900"
-            }`}
-          >
-            <div className="px-3 overflow-hidden text-ellipsis whitespace-nowrap">
-              {tableData.name}
+          <div className="bg-slate-900 text-white px-2 py-2 rounded-t-lg flex items-center">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <DataBaseIcon className="flex-shrink-0" />
+              <span
+                className="text-xs font-semibold opacity-80 overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0"
+                title={tableData.name}
+              >
+                {tableData.name}
+              </span>
             </div>
-            <div className="hidden group-hover:block">
-              <div className="flex justify-end items-center mx-2 space-x-1.5">
-                <Button
-                  icon={tableData.locked ? <IconLock /> : <IconUnlock />}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <CommonButton
+                leftIcon={readOnly ? <DetailsIcon /> : <EditIcon />}
+                size="small"
+                variant="default"
+                onClick={openEditor}
+                className="!p-0"
+              />
+              {!readOnly && (
+                <CommonButton
+                  leftIcon={<DeleteIcon />}
                   size="small"
-                  theme="solid"
-                  style={{
-                    backgroundColor: "#2f68adb3",
-                  }}
-                  onClick={lockUnlockTable}
+                  variant="default"
+                  onClick={() => deleteTable(tableData.id)}
+                  className="!p-0"
                 />
-                <Button
-                  icon={<IconEdit />}
-                  size="small"
-                  theme="solid"
-                  style={{
-                    backgroundColor: "#2f68adb3",
-                  }}
-                  onClick={openEditor}
-                />
-                <Popover
-                  key={tableData.id}
-                  content={
-                    <div className="popover-theme">
-                      <div className="mb-2">
-                        <strong>{t("comment")}:</strong>{" "}
-                        {tableData.comment === "" ? (
-                          t("not_set")
-                        ) : (
-                          <div>{tableData.comment}</div>
-                        )}
-                      </div>
-                      <div>
-                        <strong
-                          className={`${
-                            tableData.indices.length === 0 ? "" : "block"
-                          }`}
-                        >
-                          {t("indices")}:
-                        </strong>{" "}
-                        {tableData.indices.length === 0 ? (
-                          t("not_set")
-                        ) : (
-                          <div>
-                            {tableData.indices.map((index, k) => (
-                              <div
-                                key={k}
-                                className={`flex items-center my-1 px-2 py-1 rounded ${
-                                  settings.mode === "light"
-                                    ? "bg-gray-100"
-                                    : "bg-zinc-800"
-                                }`}
-                              >
-                                <i className="fa-solid fa-thumbtack me-2 mt-1 text-slate-500"></i>
-                                <div>
-                                  {index.fields.map((f) => (
-                                    <Tag color="blue" key={f} className="me-1">
-                                      {f}
-                                    </Tag>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        icon={<IconDeleteStroked />}
-                        type="danger"
-                        block
-                        style={{ marginTop: "8px" }}
-                        onClick={() => deleteTable(tableData.id)}
-                      >
-                        {t("delete")}
-                      </Button>
-                    </div>
-                  }
-                  position="rightTop"
-                  showArrow
-                  trigger="click"
-                  style={{ width: "200px", wordBreak: "break-word" }}
-                >
-                  <Button
-                    icon={<IconMore />}
-                    type="tertiary"
-                    size="small"
-                    style={{
-                      backgroundColor: "#808080b3",
-                      color: "white",
-                    }}
-                  />
-                </Popover>
-              </div>
+              )}
             </div>
           </div>
           {tableData.fields.map((e, i) => {
-            return settings.showFieldSummary ? (
-              <Popover
-                key={i}
-                content={
-                  <div className="popover-theme">
-                    <div
-                      className="flex justify-between items-center pb-2"
-                      style={{ direction: "ltr" }}
-                    >
-                      <p className="me-4 font-bold">{e.name}</p>
-                      <p
-                        className={
-                          "ms-4 font-mono " + dbToTypes[database][e.type].color
-                        }
-                      >
-                        {e.type +
-                          ((dbToTypes[database][e.type].isSized ||
-                            dbToTypes[database][e.type].hasPrecision) &&
-                          e.size &&
-                          e.size !== ""
-                            ? "(" + e.size + ")"
-                            : "")}
-                      </p>
-                    </div>
-                    <hr />
-                    {e.primary && (
-                      <Tag color="blue" className="me-2 my-2">
-                        {t("primary")}
-                      </Tag>
-                    )}
-                    {e.unique && (
-                      <Tag color="amber" className="me-2 my-2">
-                        {t("unique")}
-                      </Tag>
-                    )}
-                    {e.notNull && (
-                      <Tag color="purple" className="me-2 my-2">
-                        {t("not_null")}
-                      </Tag>
-                    )}
-                    {e.increment && (
-                      <Tag color="green" className="me-2 my-2">
-                        {t("autoincrement")}
-                      </Tag>
-                    )}
-                    <p>
-                      <strong>{t("default_value")}: </strong>
-                      {e.default === "" ? t("not_set") : e.default}
-                    </p>
-                    <p>
-                      <strong>{t("comment")}: </strong>
-                      {e.comment === "" ? t("not_set") : e.comment}
-                    </p>
-                  </div>
-                }
-                position="right"
-                showArrow
-                style={
-                  isRtl(i18n.language)
-                    ? { direction: "rtl" }
-                    : { direction: "ltr" }
-                }
-              >
-                {field(e, i)}
-              </Popover>
-            ) : (
-              field(e, i)
-            );
+            return field(e, i);
           })}
         </div>
       </foreignObject>
+
+      {tableData.fields.map((fieldData, index) =>
+        renderConnectionDots(fieldData, index),
+      )}
+      <SideSheet
+        title={readOnly ? t("details") : t("edit")}
+        size="small"
+        placement="left"
+        visible={
+          selectedElement.element === ObjectType.TABLE &&
+          selectedElement.id === tableData.id &&
+          selectedElement.open
+        }
+        onCancel={() =>
+          setSelectedElement((prev) => ({
+            ...prev,
+            open: !prev.open,
+          }))
+        }
+      >
+        <div className="sidesheet-theme">
+          <SidePanel tableData={tableData} readOnly={readOnly} />
+        </div>
+      </SideSheet>
     </>
   );
 
@@ -327,12 +202,11 @@ export default function Table({
         className={`${
           index === tableData.fields.length - 1
             ? ""
-            : "border-b border-gray-400"
-        } group h-[36px] px-2 py-1 flex justify-between items-center gap-1 w-full overflow-hidden`}
+            : "border-b border-slate-200"
+        } group h-[36px] p-2 flex justify-between items-center gap-2 w-full overflow-hidden bg-white hover:bg-slate-50`}
         onPointerEnter={(e) => {
           if (!e.isPrimary) return;
 
-          setHoveredField(index);
           setHoveredTable({
             tableId: tableData.id,
             fieldId: fieldData.id,
@@ -341,7 +215,6 @@ export default function Table({
         onPointerLeave={(e) => {
           if (!e.isPrimary) return;
 
-          setHoveredField(null);
           setHoveredTable({
             tableId: null,
             fieldId: null,
@@ -353,72 +226,24 @@ export default function Table({
           e.target.releasePointerCapture(e.pointerId);
         }}
       >
-        <div
-          className={`${
-            hoveredField === index ? "text-zinc-400" : ""
-          } flex items-center gap-2 overflow-hidden`}
-        >
-          <button
-            className="shrink-0 w-[10px] h-[10px] bg-[#2f68adcc] rounded-full"
-            onPointerDown={(e) => {
-              if (!e.isPrimary) return;
-
-              handleGripField();
-              setLinkingLine((prev) => ({
-                ...prev,
-                startFieldId: fieldData.id,
-                startTableId: tableData.id,
-                startX: tableData.x + 15,
-                startY:
-                  tableData.y +
-                  index * tableFieldHeight +
-                  tableHeaderHeight +
-                  tableColorStripHeight +
-                  12,
-                endX: tableData.x + 15,
-                endY:
-                  tableData.y +
-                  index * tableFieldHeight +
-                  tableHeaderHeight +
-                  tableColorStripHeight +
-                  12,
-              }));
-            }}
-          />
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-            {fieldData.name}
-          </span>
+        <div className="flex items-center gap-2 flex-1 overflow-hidden">
+          <div className="flex gap-2 overflow-hidden flex-1">
+            <span className="text-xs font-medium text-slate-900 opacity-80 overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0">
+              {fieldData.name}
+            </span>
+            <span className="text-xs text-slate-600 opacity-80 whitespace-nowrap flex-shrink-0">
+              {fieldData.type +
+                ((dbToTypes[database][fieldData.type].isSized ||
+                  dbToTypes[database][fieldData.type].hasPrecision) &&
+                fieldData.size &&
+                fieldData.size !== ""
+                  ? `(${fieldData.size})`
+                  : "")}
+            </span>
+          </div>
         </div>
-        <div className="text-zinc-400">
-          {hoveredField === index ? (
-            <Button
-              theme="solid"
-              size="small"
-              style={{
-                backgroundColor: "#d42020b3",
-              }}
-              icon={<IconMinus />}
-              onClick={() => deleteField(fieldData, tableData.id)}
-            />
-          ) : settings.showDataTypes ? (
-            <div className="flex gap-1 items-center">
-              {fieldData.primary && <IconKeyStroked />}
-              {!fieldData.notNull && <span className="font-mono">?</span>}
-              <span
-                className={
-                  "font-mono " + dbToTypes[database][fieldData.type].color
-                }
-              >
-                {fieldData.type +
-                  ((dbToTypes[database][fieldData.type].isSized ||
-                    dbToTypes[database][fieldData.type].hasPrecision) &&
-                  fieldData.size &&
-                  fieldData.size !== ""
-                    ? `(${fieldData.size})`
-                    : "")}
-              </span>
-            </div>
-          ) : null}
+        <div className="flex items-center gap-1">
+          {fieldData.primary && <KeyIcon />}
         </div>
       </div>
     );

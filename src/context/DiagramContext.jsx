@@ -1,5 +1,5 @@
 import { createContext, useState } from "react";
-import { Action, DB, ObjectType, defaultBlue } from "../data/constants";
+import { Action, DB, ObjectType } from "../data/constants";
 import { useTransform, useUndoRedo, useSelect } from "../hooks";
 import { Toast } from "@douyinfe/semi-ui";
 import { useTranslation } from "react-i18next";
@@ -9,14 +9,14 @@ export const DiagramContext = createContext(null);
 
 export default function DiagramContextProvider({ children }) {
   const { t } = useTranslation();
-  const [database, setDatabase] = useState(DB.GENERIC);
+  const [database, setDatabase] = useState(DB.SQLITE);
   const [tables, setTables] = useState([]);
   const [relationships, setRelationships] = useState([]);
   const { transform } = useTransform();
   const { setUndoStack, setRedoStack } = useUndoRedo();
   const { selectedElement, setSelectedElement } = useSelect();
 
-  const addTable = (data, addToHistory = true) => {
+  const addTable = (data, tableName, addToHistory = true) => {
     const id = nanoid();
     if (data) {
       setTables((prev) => {
@@ -29,14 +29,13 @@ export default function DiagramContextProvider({ children }) {
         ...prev,
         {
           id,
-          name: `table_${prev.length}`,
+          name: tableName,
           x: transform.pan.x,
           y: transform.pan.y,
-          locked: false,
           fields: [
             {
               name: "id",
-              type: database === DB.GENERIC ? "INT" : "INTEGER",
+              type: database === "INTEGER",
               default: "",
               check: "",
               primary: true,
@@ -47,9 +46,7 @@ export default function DiagramContextProvider({ children }) {
               id: nanoid(),
             },
           ],
-          comment: "",
           indices: [],
-          color: defaultBlue,
         },
       ]);
     }
@@ -60,6 +57,7 @@ export default function DiagramContextProvider({ children }) {
           id: data ? data.id : id,
           action: Action.ADD,
           element: ObjectType.TABLE,
+          name: tableName,
           message: t("add_table"),
         },
       ]);
@@ -82,6 +80,7 @@ export default function DiagramContextProvider({ children }) {
         {
           action: Action.DELETE,
           element: ObjectType.TABLE,
+          name: deletedTable.name,
           data: {
             table: deletedTable,
             relationship: rels,

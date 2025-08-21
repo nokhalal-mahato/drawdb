@@ -7,11 +7,8 @@ export default function SelectContextProvider({ children }) {
   const [selectedElement, setSelectedElement] = useState({
     element: ObjectType.NONE,
     id: -1,
-    openDialogue: false,
-    openCollapse: false,
     currentTab: Tab.TABLES,
-    open: false, // open popover or sidesheet when sidebar is disabled
-    openFromToolbar: false, // this is to handle triggering onClickOutside when sidebar is disabled
+    open: false,
   });
   const [bulkSelectedElements, setBulkSelectedElements] = useState([]);
 

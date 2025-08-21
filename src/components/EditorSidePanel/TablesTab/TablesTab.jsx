@@ -1,87 +1,101 @@
-import { Collapse, Button } from "@douyinfe/semi-ui";
-import { IconPlus } from "@douyinfe/semi-icons";
-import { useSelect, useDiagram, useSaveState } from "../../../hooks";
-import { ObjectType, State } from "../../../data/constants";
-import { useTranslation } from "react-i18next";
-import { DragHandle } from "../../SortableList/DragHandle";
-import { SortableList } from "../../SortableList/SortableList";
-import SearchBar from "./SearchBar";
-import Empty from "../Empty";
-import TableInfo from "./TableInfo";
+import { useState } from "react";
+import TableHeader from "../TableHeader";
+import SimpleTableField from "./SimpleTableField";
+import AddFieldForm from "./AddFieldForm";
+import { useDiagram } from "../../../hooks";
+import CommonButton from "../../CommonButton";
 
-export default function TablesTab() {
-  const { tables, addTable, setTables } = useDiagram();
-  const { selectedElement, setSelectedElement } = useSelect();
-  const { t } = useTranslation();
-  const { setSaveState } = useSaveState();
+export default function TablesTab({ data, readOnly = false }) {
+  const { tables } = useDiagram();
+  const [showAddField, setShowAddField] = useState(false);
+  const [editingField, setEditingField] = useState(null);
+
+  const inheritedFieldNames =
+    Array.isArray(data.inherits) && data.inherits.length > 0
+      ? data.inherits
+          .map((parentName) => {
+            const parent = tables.find((t) => t.name === parentName);
+            return parent ? parent.fields.map((f) => f.name) : [];
+          })
+          .flat()
+      : [];
+
+  const handleAddFieldCancel = () => {
+    setShowAddField(false);
+  };
+
+  const handleAddFieldAdd = () => {
+    setShowAddField(false);
+  };
+
+  const handleEditField = (field) => {
+    setEditingField(field);
+    setShowAddField(false);
+  };
+
+  const handleShowAddField = () => {
+    setShowAddField(true);
+    setEditingField(null);
+  };
+
+  const handleEditFieldSave = () => {
+    setEditingField(null);
+  };
+
+  const handleEditFieldCancel = () => {
+    setEditingField(null);
+  };
 
   return (
-    <>
-      <div className="flex gap-2">
-        <SearchBar tables={tables} />
-        <div>
-          <Button icon={<IconPlus />} block onClick={() => addTable()}>
-            {t("add_table")}
-          </Button>
-        </div>
-      </div>
-      {tables.length === 0 ? (
-        <Empty title={t("no_tables")} text={t("no_tables_text")} />
-      ) : (
-        <Collapse
-          activeKey={
-            selectedElement.open && selectedElement.element === ObjectType.TABLE
-              ? `${selectedElement.id}`
-              : ""
-          }
-          keepDOM={false}
-          lazyRender
-          onChange={(k) =>
-            setSelectedElement((prev) => ({
-              ...prev,
-              open: true,
-              id: k[0],
-              element: ObjectType.TABLE,
-            }))
-          }
-          accordion
-        >
-          <SortableList
-            keyPrefix="tables-tab"
-            items={tables}
-            onChange={(newTables) => setTables(newTables)}
-            afterChange={() => setSaveState(State.SAVING)}
-            renderItem={(item) => <TableListItem table={item} />}
+    <div className="rounded-lg border border-slate-200 overflow-hidden w-full">
+      <TableHeader
+        tableName={data.name}
+        tableId={data.id}
+        readOnly={readOnly}
+      />
+
+      <div className="bg-white">
+        {data.fields.map((field) => (
+          <div key={field.id}>
+            {editingField && editingField.id === field.id ? (
+              <AddFieldForm
+                tableId={data.id}
+                editingField={field}
+                onCancel={handleEditFieldCancel}
+                onSave={handleEditFieldSave}
+              />
+            ) : (
+              <SimpleTableField
+                data={field}
+                tid={data.id}
+                inherited={inheritedFieldNames.includes(field.name)}
+                onEdit={handleEditField}
+                readOnly={readOnly}
+              />
+            )}
+          </div>
+        ))}
+
+        {showAddField && !editingField && (
+          <AddFieldForm
+            tableId={data.id}
+            onCancel={handleAddFieldCancel}
+            onAdd={handleAddFieldAdd}
           />
-        </Collapse>
-      )}
-    </>
-  );
-}
+        )}
+      </div>
 
-function TableListItem({ table }) {
-  return (
-    <div id={`scroll_table_${table.id}`}>
-      <Collapse.Panel
-        className="relative"
-        header={
-          <>
-            <div className="flex items-center gap-2">
-              <DragHandle id={table.id} />
-              <div className="overflow-hidden text-ellipsis whitespace-nowrap">
-                {table.name}
-              </div>
-            </div>
-            <div
-              className="w-1 h-full absolute top-0 left-0 bottom-0"
-              style={{ backgroundColor: table.color }}
-            />
-          </>
-        }
-        itemKey={`${table.id}`}
-      >
-        <TableInfo data={table} />
-      </Collapse.Panel>
+      {!readOnly && (
+        <div className="bg-white border-t border-slate-200 rounded-b-lg">
+          <CommonButton
+            onClick={handleShowAddField}
+            variant="default"
+            text="+ Add New Field"
+            disabled={showAddField || !!editingField}
+            className="!py-2 !px-3 w-full !justify-start !text-blue-600 font-semibold text-sm bg-transparent border-none hover:bg-transparent opacity-80"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,8 @@ const en = {
     report_bug: "Report a bug",
     import: "Import",
     inherits: "Inherits",
-    merging_column_w_inherited_definition: "Column '{{fieldName}}' in table '{{tableName}}' with inherited definition will be merged",
+    merging_column_w_inherited_definition:
+      "Column '{{fieldName}}' in table '{{tableName}}' with inherited definition will be merged",
     import_from: "Import from",
     file: "File",
     new: "New",
@@ -256,6 +257,8 @@ const en = {
     export_saved_data: "Export saved data",
     dbml_view: "DBML view",
     tab_view: "Tab view",
+    playground: "Playground",
+    sql_code: "SQL Code",
   },
 };
 

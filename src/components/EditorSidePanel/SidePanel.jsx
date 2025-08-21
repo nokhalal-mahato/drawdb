@@ -1,102 +1,50 @@
-import { useMemo } from "react";
-import { Tabs, TabPane } from "@douyinfe/semi-ui";
+import { useState } from "react";
 import { Tab } from "../../data/constants";
-import { useSelect, useDiagram, useEnums, useTypes } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import RelationshipsTab from "./RelationshipsTab/RelationshipsTab";
-import TypesTab from "./TypesTab/TypesTab";
 import TablesTab from "./TablesTab/TablesTab";
-import { databases } from "../../data/databases";
-import EnumsTab from "./EnumsTab/EnumsTab";
-import { isRtl } from "../../i18n/utils/rtl";
-import i18n from "../../i18n/i18n";
-import DBMLEditor from "./DBMLEditor";
+import TabBar from "../TabBar";
 
-export default function SidePanel({ width, resize, setResize }) {
-  const { selectedElement, setSelectedElement } = useSelect();
-  const { database, tablesCount, relationshipsCount } = useDiagram();
-  const { typesCount } = useTypes();
-  const { enumsCount } = useEnums();
+export default function SidePanel({ tableData, readOnly }) {
   const { t } = useTranslation();
 
-  const tabList = useMemo(() => {
-    const tabs = [
-      {
-        tab: `${t("tables")} (${tablesCount})`,
-        itemKey: Tab.TABLES,
-        component: <TablesTab />,
-      },
-      {
-        tab: `${t("relationships")} (${relationshipsCount})`,
-        itemKey: Tab.RELATIONSHIPS,
-        component: <RelationshipsTab />,
-      },
-      {
-        tab: `${t("dbml")}`,
-        itemKey: Tab.DBML,
-        component: <DBMLEditor />,
-      },
-    ];
+  const [activeTab, setActiveTab] = useState(Tab.TABLES);
 
-    if (databases[database].hasTypes) {
-      tabs.push({
-        tab: `${t("types")} (${typesCount})`,
-        itemKey: Tab.TYPES,
-        component: <TypesTab />,
-      });
-    }
-
-    if (databases[database].hasEnums) {
-      tabs.push({
-        tab: `${t("enums")} (${enumsCount})`,
-        itemKey: Tab.ENUMS,
-        component: <EnumsTab />,
-      });
-    }
-
-    return isRtl(i18n.language) ? tabs.reverse() : tabs;
-  }, [t, database, tablesCount, relationshipsCount, typesCount, enumsCount]);
+  const tabs = [
+    {
+      label: t("tables"),
+      id: Tab.TABLES,
+    },
+    {
+      label: t("relationships"),
+      id: Tab.RELATIONSHIPS,
+    },
+  ];
 
   return (
     <div className="flex h-full">
-      <div
-        className="flex flex-col h-full relative border-r border-color"
-        style={{ width: `${width}px` }}
-      >
+      <div className="flex flex-col h-full w-full">
         <div className="h-full flex-1 overflow-y-auto">
-          {
-            <Tabs
-              type="card"
-              activeKey={selectedElement.currentTab}
-              lazyRender
-              keepDOM={false}
-              onChange={(key) =>
-                setSelectedElement((prev) => ({ ...prev, currentTab: key }))
-              }
-              collapsible
-              tabBarStyle={{ direction: "ltr" }}
-            >
-              {tabList.length &&
-                tabList.map((tab) => (
-                  <TabPane
-                    tab={tab.tab}
-                    itemKey={tab.itemKey}
-                    key={tab.itemKey}
-                  >
-                    <div className="p-2">{tab.component}</div>
-                  </TabPane>
-                ))}
-            </Tabs>
-          }
+          <TabBar
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            className="!p-0 !border-0 mb-3"
+            wrapperClassName="border border-gray-200 p-1"
+            buttonClassName="!w-[122px] !h-[40px] !rounded-lg"
+            activeButtonClassName="!bg-blue-100 !text-blue-700"
+          />
+          {activeTab === Tab.TABLES && (
+            <TablesTab data={tableData} readOnly={readOnly} />
+          )}
+          {activeTab === Tab.RELATIONSHIPS && (
+            <RelationshipsTab
+              tableId={tableData.id}
+              readOnly={readOnly}
+              tableName={tableData.name}
+            />
+          )}
         </div>
-      </div>
-      <div
-        className={`flex justify-center items-center p-1 h-auto hover-2 cursor-col-resize ${
-          resize && "bg-semi-grey-2"
-        }`}
-        onPointerDown={(e) => e.isPrimary && setResize(true)}
-      >
-        <div className="w-1 border-x border-color h-1/6" />
       </div>
     </div>
   );

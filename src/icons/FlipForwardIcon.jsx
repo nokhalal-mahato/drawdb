@@ -1,0 +1,25 @@
+import SVGUniqueID from "react-svg-unique-id";
+
+export default function FlipForwardIcon(props) {
+  const { width = 24, height = 24, stroke = "#64748B" } = props;
+
+  return (
+    <SVGUniqueID>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <path
+          d="M21 9H7.5C5.01472 9 3 11.0147 3 13.5C3 15.9853 5.01472 18 7.5 18H12M21 9L17 5M21 9L17 13"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </SVGUniqueID>
+  );
+}

@@ -3,7 +3,7 @@ import { isFunction, isKeyword } from "../utils";
 import { DB } from "../../data/constants";
 import { dbToTypes } from "../../data/datatypes";
 
-export function parseDefault(field, database = DB.GENERIC) {
+export function parseDefault(field, database = DB.SQLITE) {
   if (
     isFunction(field.default) ||
     isKeyword(field.default) ||

@@ -1,0 +1,95 @@
+{
+  "tables": [
+    {
+      "name": "table_0",
+      "comment": "",
+      "fields": [
+        {
+          "id": "MlGiX1fW6CLJQkCaoiorj",
+          "name": "id",
+          "type": "INT",
+          "comment": "",
+          "unique": true,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "id": "qZepC3HoGG71z0uTGm3q8",
+      "x": -87.45703125,
+      "y": -82.5078125
+    },
+    {
+      "name": "table_1",
+      "comment": "",
+      "fields": [
+        {
+          "id": "HaZsXhAKM9xMTCNodxcjq",
+          "name": "id",
+          "type": "INT",
+          "comment": "",
+          "unique": true,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "id": "bnDiAGYAi52u8GzulNrI1",
+      "x": 398.890625,
+      "y": -272.734375
+    },
+    {
+      "name": "table_2",
+      "comment": "",
+      "fields": [
+        {
+          "id": "n8TZiVO1s2ESU_ZrjxF6I",
+          "name": "id",
+          "type": "INT",
+          "comment": "",
+          "unique": true,
+          "increment": false,
+          "notNull": true,
+          "primary": true,
+          "default": "",
+          "check": ""
+        }
+      ],
+      "indices": [],
+      "id": "7hTdfYEAmJl2apIjchIVZ",
+      "x": 54,
+      "y": 173
+    }
+  ],
+  "relationships": [
+    {
+      "startTableId": "bnDiAGYAi52u8GzulNrI1",
+      "startFieldId": "HaZsXhAKM9xMTCNodxcjq",
+      "endTableId": "qZepC3HoGG71z0uTGm3q8",
+      "endFieldId": "MlGiX1fW6CLJQkCaoiorj",
+      "cardinality": "one_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "fk_table_1_id_table_0",
+      "id": 0
+    },
+    {
+      "startTableId": "qZepC3HoGG71z0uTGm3q8",
+      "startFieldId": "MlGiX1fW6CLJQkCaoiorj",
+      "endTableId": "7hTdfYEAmJl2apIjchIVZ",
+      "endFieldId": "n8TZiVO1s2ESU_ZrjxF6I",
+      "cardinality": "one_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action",
+      "name": "fk_table_0_id_table_2",
+      "id": 1
+    }
+  ],
+  "title": "Untitled Diagram"
+}

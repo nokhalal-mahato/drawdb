@@ -1,3 +1,15 @@
 export { default as IconAddTable } from "./IconAddTable";
-export { default as IconAddArea } from "./IconAddArea";
-export { default as IconAddNote } from "./IconAddNote";
+export { default as CheckIcon } from "./CheckIcon";
+export { default as FlipBackwardIcon } from "./FlipBackwardIcon";
+export { default as PlusIcon } from "./PlusIcon";
+export { default as SaveIcon } from "./SaveIcon";
+export { default as KeyIcon } from "./KeyIcon";
+export { default as ArrowDownIcon } from "./ArrowDownIcon";
+export { default as ChevronDownIcon } from "./ChevronDownIcon";
+export { default as DataBaseIcon } from "./DataBaseIcon";
+export { default as DeleteIcon } from "./DeleteIcon";
+export { default as EditIcon } from "./EditIcon";
+export { default as FlipForwardIcon } from "./FlipForwardIcon";
+export { default as CloseIcon } from "./CloseIcon";
+export { default as DownloadIcon } from "./DownloadIcon";
+export { default as DetailsIcon } from "./DetailsIcon";

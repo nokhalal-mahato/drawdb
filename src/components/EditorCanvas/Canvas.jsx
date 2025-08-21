@@ -3,7 +3,6 @@ import {
   Action,
   Cardinality,
   Constraint,
-  darkBgTheme,
   ObjectType,
   gridSize,
   gridCircleRadius,
@@ -12,22 +11,17 @@ import { Toast } from "@douyinfe/semi-ui";
 import Table from "./Table";
 import Relationship from "./Relationship";
 import {
-  useLayout,
   useCanvas,
-  useSettings,
   useTransform,
   useDiagram,
   useUndoRedo,
   useSelect,
-  useSaveState,
 } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { useEventListener } from "usehooks-ts";
-import { areFieldsCompatible, getTableHeight } from "../../utils/utils";
-import { getRectFromEndpoints, isInsideRect } from "../../utils/rect";
-import { State } from "../../data/constants";
+import { areFieldsCompatible } from "../../utils/utils";
 
-export default function Canvas() {
+export default function Canvas({ readOnly }) {
   const { t } = useTranslation();
 
   const canvasRef = useRef(null);
@@ -39,9 +33,6 @@ export default function Canvas() {
 
   const { tables, updateTable, relationships, addRelationship, database } =
     useDiagram();
-  const { setSaveState } = useSaveState();
-  const { layout } = useLayout();
-  const { settings } = useSettings();
   const { setUndoStack, setRedoStack } = useUndoRedo();
   const { transform, setTransform } = useTransform();
   const {
@@ -76,22 +67,7 @@ export default function Canvas() {
     panStart: { x: 0, y: 0 },
     cursorStart: { x: 0, y: 0 },
   });
-  const [areaResize, setAreaResize] = useState({ id: -1, dir: "none" });
-  const [areaInitDimensions, setAreaInitDimensions] = useState({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
-  const [bulkSelectRect, setBulkSelectRect] = useState({
-    x1: 0,
-    y1: 0,
-    x2: 0,
-    y2: 0,
-    show: false,
-    ctrlKey: false,
-    metaKey: false,
-  });
+
   // this is used to store the element that is clicked on
   // at the moment, and shouldn't be a part of the state
   let elementPointerDown = null;
@@ -100,53 +76,12 @@ export default function Canvas() {
     return el1.id === el2.id && el1.type === el2.type;
   };
 
-  const collectSelectedElements = () => {
-    const rect = getRectFromEndpoints(bulkSelectRect);
-    const elements = [];
-    const shouldAddElement = (elementRect, element) => {
-      // if ctrl key is pressed, only add the elements that are not already selected
-      // can theoretically be optimized later if the selected elements is
-      // a map from id to element (after the ids are made unique)
-      return (
-        isInsideRect(elementRect, rect) &&
-        ((!bulkSelectRect.ctrlKey && !bulkSelectRect.metaKey) ||
-          !bulkSelectedElements.some((el) => isSameElement(el, element)))
-      );
-    };
-
-    tables.forEach((table) => {
-      if (table.locked) return;
-
-      const element = {
-        id: table.id,
-        type: ObjectType.TABLE,
-        currentCoords: { x: table.x, y: table.y },
-        initialCoords: { x: table.x, y: table.y },
-      };
-      const tableRect = {
-        x: table.x,
-        y: table.y,
-        width: settings.tableWidth,
-        height: getTableHeight(table),
-      };
-      if (shouldAddElement(tableRect, element)) {
-        elements.push(element);
-      }
-    });
-
-    if (bulkSelectRect.ctrlKey || bulkSelectRect.metaKey) {
-      setBulkSelectedElements([...bulkSelectedElements, ...elements]);
-    } else {
-      setBulkSelectedElements(elements);
-    }
-  };
-
   const handlePointerDownOnElement = (e, { element, type }) => {
-    if (selectedElement.open && !layout.sidebar) return;
+    if (selectedElement.open) return;
 
     if (!e.isPrimary) return;
 
-    if (!element.locked || !(e.ctrlKey || e.metaKey)) {
+    if (!(e.ctrlKey || e.metaKey)) {
       setSelectedElement((prev) => ({
         ...prev,
         element: type,
@@ -154,18 +89,6 @@ export default function Canvas() {
         open: false,
       }));
     }
-
-    if (element.locked) {
-      if (!(e.ctrlKey || e.metaKey)) {
-        setBulkSelectedElements([]);
-      }
-      return;
-    }
-
-    setBulkSelectRect((prev) => ({
-      ...prev,
-      show: false,
-    }));
 
     // this is the object that will be added to the bulk selected elements
     // if necessary
@@ -216,12 +139,6 @@ export default function Canvas() {
   };
 
   const coordinatesAfterSnappingToGrid = ({ x, y }) => {
-    if (settings.snapToGrid) {
-      return {
-        x: Math.round(x / gridSize) * gridSize,
-        y: Math.round(y / gridSize) * gridSize,
-      };
-    }
     return { x, y };
   };
 
@@ -229,7 +146,7 @@ export default function Canvas() {
    * @param {PointerEvent} e
    */
   const handlePointerMove = (e) => {
-    if (selectedElement.open && !layout.sidebar) return;
+    if (selectedElement.open) return;
 
     if (!e.isPrimary) return;
 
@@ -290,48 +207,6 @@ export default function Canvas() {
       setBulkSelectedElements(newBulkSelectedElements);
       return;
     }
-
-    if (areaResize.id !== -1) {
-      if (areaResize.dir === "none") return;
-      let newDims = { ...areaInitDimensions };
-      setPanning((old) => ({ ...old, isPanning: false }));
-      const { x, y } = coordinatesAfterSnappingToGrid(pointer.spaces.diagram);
-
-      switch (areaResize.dir) {
-        case "br":
-          newDims.width = x - areaInitDimensions.x;
-          newDims.height = y - areaInitDimensions.y;
-          break;
-        case "tl":
-          newDims.x = x;
-          newDims.y = y;
-          newDims.width = areaInitDimensions.width - (x - areaInitDimensions.x);
-          newDims.height =
-            areaInitDimensions.height - (y - areaInitDimensions.y);
-          break;
-        case "tr":
-          newDims.y = y;
-          newDims.width = x - areaInitDimensions.x;
-          newDims.height =
-            areaInitDimensions.height - (y - areaInitDimensions.y);
-          break;
-        case "bl":
-          newDims.x = x;
-          newDims.width = areaInitDimensions.width - (x - areaInitDimensions.x);
-          newDims.height = y - areaInitDimensions.y;
-          break;
-      }
-
-      return;
-    }
-
-    if (bulkSelectRect.show) {
-      setBulkSelectRect((prev) => ({
-        ...prev,
-        x2: pointer.spaces.diagram.x,
-        y2: pointer.spaces.diagram.y,
-      }));
-    }
   };
 
   /**
@@ -341,26 +216,13 @@ export default function Canvas() {
     if (!e.isPrimary) return;
 
     // don't pan if the sidesheet for editing a table is open
-    if (
-      selectedElement.element === ObjectType.TABLE &&
-      selectedElement.open &&
-      !layout.sidebar
-    )
+    if (selectedElement.element === ObjectType.TABLE && selectedElement.open)
       return;
 
     const isMouseLeftButton = e.button === 0;
     const isMouseMiddleButton = e.button === 1;
 
     if (isMouseLeftButton) {
-      setBulkSelectRect({
-        x1: pointer.spaces.diagram.x,
-        y1: pointer.spaces.diagram.y,
-        x2: pointer.spaces.diagram.x,
-        y2: pointer.spaces.diagram.y,
-        show: elementPointerDown === null || !elementPointerDown.element.locked,
-        ctrlKey: e.ctrlKey,
-        metaKey: e.metaKey,
-      });
       if (elementPointerDown !== null) {
         handlePointerDownOnElement(e, elementPointerDown);
       }
@@ -390,17 +252,11 @@ export default function Canvas() {
     );
   };
 
-  const didPan = () =>
-    !(
-      transform.pan.x === panning.panStart.x &&
-      transform.pan.y === panning.panStart.y
-    );
-
   /**
    * @param {PointerEvent} e
    */
   const handlePointerUp = (e) => {
-    if (selectedElement.open && !layout.sidebar) return;
+    if (selectedElement.open) return;
 
     if (!e.isPrimary) return;
 
@@ -428,55 +284,13 @@ export default function Canvas() {
       );
     }
 
-    if (bulkSelectRect.show) {
-      setBulkSelectRect((prev) => ({
-        ...prev,
-        x2: pointer.spaces.diagram.x,
-        y2: pointer.spaces.diagram.y,
-        show: false,
-      }));
-      if (!isDragging()) {
-        collectSelectedElements();
-      }
-    }
     setDragging(notDragging);
 
-    if (panning.isPanning && didPan()) {
-      setSaveState(State.SAVING);
-    }
     setPanning((old) => ({ ...old, isPanning: false }));
     pointer.setStyle("default");
 
     if (linking) handleLinking();
     setLinking(false);
-
-    if (areaResize.id !== -1) {
-      setUndoStack((prev) => [
-        ...prev,
-        {
-          action: Action.EDIT,
-          element: ObjectType.AREA,
-          aid: areaResize.id,
-          undo: {
-            x: areaInitDimensions.x,
-            y: areaInitDimensions.y,
-            width: areaInitDimensions.width,
-            height: areaInitDimensions.height,
-          },
-          message: t("edit_area", {
-            extra: "[resize]",
-          }),
-        },
-      ]);
-      setRedoStack([]);
-    }
-    setAreaResize({ id: -1, dir: "none" });
-    setAreaInitDimensions({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    });
   };
 
   const handleGripField = () => {
@@ -581,7 +395,7 @@ export default function Canvas() {
         className="w-full h-full"
         style={{
           cursor: pointer.style,
-          backgroundColor: settings.mode === "dark" ? darkBgTheme : "white",
+          backgroundColor: "white",
         }}
       >
         <svg
@@ -593,7 +407,7 @@ export default function Canvas() {
           className="absolute w-full h-full touch-none"
           viewBox={`${viewBox.left} ${viewBox.top} ${viewBox.width} ${viewBox.height}`}
         >
-          {settings.showGrid && (
+          {
             <>
               <defs>
                 <pattern
@@ -622,11 +436,8 @@ export default function Canvas() {
                 fill="url(#pattern-grid)"
               />
             </>
-          )}
+          }
 
-          {relationships.map((e, i) => (
-            <Relationship key={i} data={e} />
-          ))}
           {tables.map((table) => (
             <Table
               key={table.id}
@@ -634,6 +445,7 @@ export default function Canvas() {
               setHoveredTable={setHoveredTable}
               handleGripField={handleGripField}
               setLinkingLine={setLinkingLine}
+              readOnly={readOnly}
               onPointerDown={() => {
                 elementPointerDown = {
                   element: table,
@@ -642,6 +454,11 @@ export default function Canvas() {
               }}
             />
           ))}
+
+          {relationships.map((e, i) => (
+            <Relationship key={i} data={e} />
+          ))}
+
           {linking && (
             <path
               d={`M ${linkingLine.startX} ${linkingLine.startY} L ${linkingLine.endX} ${linkingLine.endY}`}
@@ -650,88 +467,8 @@ export default function Canvas() {
               className="pointer-events-none touch-none"
             />
           )}
-
-          {bulkSelectRect.show && (
-            <rect
-              {...getRectFromEndpoints(bulkSelectRect)}
-              stroke="grey"
-              fill="grey"
-              fillOpacity={0.15}
-              strokeDasharray={10}
-            />
-          )}
         </svg>
       </div>
-      {settings.showDebugCoordinates && (
-        <div className="fixed flex flex-col flex-wrap gap-6 bg-[rgba(var(--semi-grey-1),var(--tw-bg-opacity))]/40 border border-color bottom-4 right-4 p-4 rounded-xl backdrop-blur-xs pointer-events-none select-none">
-          <table className="table-auto grow">
-            <thead>
-              <tr>
-                <th className="text-left" colSpan={3}>
-                  {t("transform")}
-                </th>
-              </tr>
-              <tr className="italic [&_th]:font-normal [&_th]:text-right">
-                <th>pan x</th>
-                <th>pan y</th>
-                <th>scale</th>
-              </tr>
-            </thead>
-            <tbody className="[&_td]:text-right [&_td]:min-w-[8ch]">
-              <tr>
-                <td>{transform.pan.x.toFixed(2)}</td>
-                <td>{transform.pan.y.toFixed(2)}</td>
-                <td>{transform.zoom.toFixed(4)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <table className="table-auto grow [&_th]:text-left [&_th:not(:first-of-type)]:text-right [&_td:not(:first-of-type)]:text-right [&_td]:min-w-[8ch]">
-            <thead>
-              <tr>
-                <th colSpan={4}>{t("viewbox")}</th>
-              </tr>
-              <tr className="italic [&_th]:font-normal">
-                <th>left</th>
-                <th>top</th>
-                <th>width</th>
-                <th>height</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{viewBox.left.toFixed(2)}</td>
-                <td>{viewBox.top.toFixed(2)}</td>
-                <td>{viewBox.width.toFixed(2)}</td>
-                <td>{viewBox.height.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <table className="table-auto grow [&_th]:text-left [&_th:not(:first-of-type)]:text-right [&_td:not(:first-of-type)]:text-right [&_td]:min-w-[8ch]">
-            <thead>
-              <tr>
-                <th colSpan={3}>{t("cursor_coordinates")}</th>
-              </tr>
-              <tr className="italic [&_th]:font-normal">
-                <th>{t("coordinate_space")}</th>
-                <th>x</th>
-                <th>y</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{t("coordinate_space_screen")}</td>
-                <td>{pointer.spaces.screen.x.toFixed(2)}</td>
-                <td>{pointer.spaces.screen.y.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>{t("coordinate_space_diagram")}</td>
-                <td>{pointer.spaces.diagram.x.toFixed(2)}</td>
-                <td>{pointer.spaces.diagram.y.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

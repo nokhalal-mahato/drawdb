@@ -1,5 +1,3 @@
-import { tableFieldHeight, tableHeaderHeight } from "../data/constants";
-
 /**
  * Generates an SVG path string to visually represent a relationship between two fields.
  *
@@ -19,18 +17,10 @@ export function calcPath(r, tableWidth = 200, zoom = 1) {
   }
 
   const width = tableWidth * zoom;
-  let x1 = r.startTable.x;
-  let y1 =
-    r.startTable.y +
-    r.startFieldIndex * tableFieldHeight +
-    tableHeaderHeight +
-    tableFieldHeight / 2;
-  let x2 = r.endTable.x;
-  let y2 =
-    r.endTable.y +
-    r.endFieldIndex * tableFieldHeight +
-    tableHeaderHeight +
-    tableFieldHeight / 2;
+  let x1 = r.startTable.x - 5;
+  let y1 = r.startTable.y + r.startFieldIndex * 32 + 38 + 18;
+  let x2 = r.endTable.x + 5;
+  let y2 = r.endTable.y + r.endFieldIndex * 32 + 38 + 18;
 
   let radius = 10 * zoom;
   const midX = (x2 + x1 + width) / 2;
