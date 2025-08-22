@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import Editor from "./components/Editor/Editor";
+import "./i18n/i18n.js";
 
 /**
  * FederatedEditor - A wrapper component for the Editor that can be consumed via Module Federation
