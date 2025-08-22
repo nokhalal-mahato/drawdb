@@ -438,6 +438,10 @@ export default function Canvas({ readOnly }) {
             </>
           }
 
+          {relationships.map((e, i) => (
+            <Relationship key={i} data={e} />
+          ))}
+
           {tables.map((table) => (
             <Table
               key={table.id}
@@ -453,10 +457,6 @@ export default function Canvas({ readOnly }) {
                 };
               }}
             />
-          ))}
-
-          {relationships.map((e, i) => (
-            <Relationship key={i} data={e} />
           ))}
 
           {linking && (
